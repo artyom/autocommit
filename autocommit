@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+set -eu
+set -o pipefail
+
+TD=$(mktemp -d)
+cleanup() {
+	rm -rf -- $TD
+}
+trap cleanup EXIT
+
+test "$#" -eq 0 || {
+	cat <<EOF >$TD/extra-context.txt
+$@
+EOF
+}
+
+PREV=$TD/previous-commit-message-examples.txt
+git log -n 3 --author $(git config user.email) >$PREV || :
+test -s $PREV || {
+	git log -n 3 >$PREV || :
+}
+test -s $PREV || rm -f -- $PREV
+
+STATUS=$(git status --porcelain)
+
+args=()
+if test -z "$STATUS"; then
+	echo "Nothing to commit" >&2
+	exit 0
+elif echo "$STATUS" | grep -q '^[AMDRC]'; then
+	echo "Only committing staged changes" >&2
+	git diff --cached -W >$TD/diff.txt
+elif echo "$STATUS" | grep -q '^.[AMDRC]'; then
+	git diff -W >$TD/diff.txt
+	args+=("-a") # for git commit -a
+else
+	echo "Not sure what to do, commit manually" >&2
+	exit 2
+fi
+
+test -s $TD/diff.txt || {
+	echo "Empty diff" >&2
+	exit 2
+}
+
+cat <<EOF >$TD/system
+You're a piece of automation producing commit messages.
+Your replies are used directly as commit message text.
+EOF
+
+echo "Waiting for LLM..." >&2
+export LLMCLI_MUTE_THINKING=1
+llmcli -s $TD/system -b 4000 -f $TD/\*.txt <<EOF >$TD/msg
+Write a commit message for this change (see the diff).
+If you're given the sample of previous commit messages, follow the same conventions.
+EOF
+
+git commit "${args[@]}" -F $TD/msg
