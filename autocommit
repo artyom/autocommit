@@ -55,4 +55,5 @@ Write a commit message for this change (see the diff).
 If you're given the sample of previous commit messages, follow the same conventions.
 EOF
 
-git commit "${args[@]}" -F $TD/msg
+args+=("--") # avoids dealing with an empty array below
+git commit -F $TD/msg "${args[@]}"
