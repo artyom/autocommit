@@ -23,7 +23,7 @@ test -s $PREV || rm -f -- $PREV
 
 STATUS=$(git status --porcelain)
 
-args=()
+gitcall=("git" "commit")
 if test -z "$STATUS"; then
 	echo "Nothing to commit" >&2
 	exit 0
@@ -32,7 +32,7 @@ elif echo "$STATUS" | grep -q '^[AMDRC]'; then
 	git diff --cached -W >$TD/diff.txt
 elif echo "$STATUS" | grep -q '^.[AMDRC]'; then
 	git diff -W >$TD/diff.txt
-	args+=("-a") # for git commit -a
+	gitcall+=("-a")
 else
 	echo "Not sure what to do, commit manually" >&2
 	exit 2
@@ -55,5 +55,4 @@ Write a commit message for this change (see the diff).
 If you're given the sample of previous commit messages, follow the same conventions.
 EOF
 
-args+=("--") # avoids dealing with an empty array below
-git commit -F $TD/msg "${args[@]}"
+"${gitcall[@]}" -F $TD/msg
