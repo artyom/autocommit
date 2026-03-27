@@ -52,6 +52,8 @@ echo "Waiting for LLM..." >&2
 export LLMCLI_MUTE_THINKING=1
 llmcli -s $TD/system -b 4000 -f $TD/\*.txt <<EOF >$TD/msg
 Write a commit message for this change (see the diff).
+In the message the focus should be more on the *why*, not *what*, but don't
+bother explaining obvious things, sometimes one-line commit message is fine.
 If you're given the sample of previous commit messages, follow the same conventions.
 EOF
 
